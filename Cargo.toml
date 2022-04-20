@@ -1,0 +1,21 @@
+[package]
+edition = "2021"
+name = "cast-to-x"
+version = "0.1.0"
+
+[[bin]]
+name = "cast-to-x"
+path = "src/main.rs"
+
+[profile.release]
+codegen-units = 1
+lto = true
+
+[dependencies]
+ashpd = "0.3.0"
+tokio = { version = "1", features = [ "macros", "rt-multi-thread" ] }
+zbus = "2.1.1"
+gstreamer = "0.18.8"
+gstreamer-video = "0.18.7"
+pipewire = "0.5.0"
+winit = { version = "0.26.1", default-features = false, features = [ "x11" ] }
