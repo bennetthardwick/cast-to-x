@@ -4,6 +4,7 @@ name = "cast-to-x"
 version = "0.1.0"
 description = "Cast your Wayland to an X window"
 repository = "https://github.com/bennetthardwick/cast-to-x"
+license = "GPL-2.0"
 
 [[bin]]
 name = "cast-to-x"
