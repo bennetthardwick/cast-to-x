@@ -1,5 +1,3 @@
-use tokio::{self};
-
 use ashpd::{
     desktop::screencast::{CursorMode, PersistMode, ScreenCastProxy, SourceType},
     enumflags2::BitFlags,
@@ -55,14 +53,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source = gst::ElementFactory::make("pipewiresrc", Some("source"))
         .expect("Could not create source element.");
 
-    let sink = gst::ElementFactory::make("ximagesink", Some("sink"))
+    let sink = gst::ElementFactory::make("glimagesink", Some("sink"))
         .expect("Could not create sink element");
 
-    let first_queue =
-        gst::ElementFactory::make("queue", Some("first-queue")).expect("Failed to create queue");
-    let second_queue = gst::ElementFactory::make("videoscale", Some("second-queue"))
-        .expect("Failed to create queue");
-    let convert = gst::ElementFactory::make("videoconvert", None).expect("Failed to create queue");
+    let rate = gst::ElementFactory::make("videorate", Some("videorate")).expect("Failed");
+
+    let pad = gst::Pad::new(Some("test-pad"), gst::PadDirection::Src);
+
+    rate.add_pad(&pad).expect("Failed to add");
+
+    // rate.set_property("max-rate", 15);
+
+    // let queue = gst::ElementFactory::make("queue", Some("queue")).expect("Failed to create queue");
 
     // Create the empty pipeline
     let pipeline = gst::Pipeline::new(Some("test-pipeline"));
@@ -72,24 +74,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     source.set_property("path", &node.to_string());
 
     // Build the pipeline
-    pipeline
-        .add_many(&[&source, &first_queue, &convert, &second_queue, &sink])
-        .unwrap();
+    pipeline.add_many(&[&source, &rate, &sink]).unwrap();
 
-    source
-        .link(&first_queue)
-        .expect("Elements could not be linked.");
+    source.link(&rate).unwrap();
+    rate.link(&sink).unwrap();
 
-    first_queue
-        .link(&convert)
-        .expect("Elements could not be linked.");
+    // first_queue
+    //     .link(&convert)
+    //     .expect("Elements could not be linked.");
 
-    convert
-        .link(&second_queue)
-        .expect("Elements could not be linked.");
-    second_queue
-        .link(&sink)
-        .expect("Elements could not be linked.");
+    // convert
+    //     .link(&second_queue)
+    //     .expect("Elements could not be linked.");
+    // second_queue
+    //     .link(&sink)
+    //     .expect("Elements could not be linked.");
 
     let event_loop = EventLoop::new();
 
@@ -100,12 +99,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_title(title)
         .with_position(Position::Logical(LogicalPosition { x: 0., y: 0. }))
         .with_min_inner_size(Size::Logical(LogicalSize {
-            width: 1920.,
-            height: 1080.,
+            width: 960.,
+            height: 540.,
         }))
         .with_max_inner_size(Size::Logical(LogicalSize {
-            width: 1920.,
-            height: 1080.,
+            width: 960.,
+            height: 540.,
         }))
         .with_maximized(false)
         .build(&event_loop)
@@ -140,7 +139,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Playing!");
 
-    let _bus_loop = Some(std::thread::spawn(move || {
+    std::thread::spawn(move || {
         for msg in bus.iter_timed(gst::ClockTime::NONE) {
             use gst::MessageView;
 
@@ -158,7 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 _ => (),
             }
         }
-    }));
+    });
 
     let mut pipeline_handle = Some(pipeline);
 
